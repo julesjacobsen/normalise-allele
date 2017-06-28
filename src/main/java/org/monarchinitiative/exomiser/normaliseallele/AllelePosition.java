@@ -46,7 +46,7 @@ public class AllelePosition {
         Objects.requireNonNull(ref, "REF string cannot be null");
         Objects.requireNonNull(alt, "ALT string cannot be null");
 
-        if (isSnv(ref, alt)) {
+        if (cantTrim(ref, alt)) {
             return new AllelePosition(pos, ref, alt);
         }
 
@@ -82,8 +82,8 @@ public class AllelePosition {
         return new AllelePosition(pos, ref, alt);
     }
 
-    private static boolean isSnv(String ref, String alt) {
-        return ref.length() == 1 && alt.length() == 1;
+    private static boolean cantTrim(String ref, String alt) {
+        return ref.length() == 1 || alt.length() == 1;
     }
 
     private static boolean needsRightTrim(String ref, String alt) {
