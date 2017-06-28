@@ -12,17 +12,17 @@ public class AllelePositionTest {
 
     @Test(expected = NullPointerException.class)
     public void testNullRef() {
-        AllelePosition instance = AllelePosition.normalise(1, null, "A");
+        AllelePosition instance = AllelePosition.minimise(1, null, "A");
     }
 
     @Test(expected = NullPointerException.class)
     public void testNullAlt() {
-        AllelePosition instance = AllelePosition.normalise(1, "T", null);
+        AllelePosition instance = AllelePosition.minimise(1, "T", null);
     }
 
     @Test
     public void testEmptyRef() {
-        AllelePosition instance = AllelePosition.normalise(1, "", "TA");
+        AllelePosition instance = AllelePosition.minimise(1, "", "TA");
 
         assertThat(instance.getPos(), equalTo(1));
         assertThat(instance.getRef(), equalTo(""));
@@ -31,7 +31,7 @@ public class AllelePositionTest {
 
     @Test
     public void testEmptyAlt() {
-        AllelePosition instance = AllelePosition.normalise(1, "TA", "");
+        AllelePosition instance = AllelePosition.minimise(1, "TA", "");
 
         assertThat(instance.getPos(), equalTo(1));
         assertThat(instance.getRef(), equalTo("TA"));
@@ -40,16 +40,69 @@ public class AllelePositionTest {
 
     @Test
     public void testEvaOne() {
-        AllelePosition instance = AllelePosition.normalise(1000, "AGTTC", "AGCC");
+        AllelePosition instance = AllelePosition.minimise(1000, "AGTTC", "AGCC");
 
         assertThat(instance.getPos(), equalTo(1002));
         assertThat(instance.getRef(), equalTo("TT"));
         assertThat(instance.getAlt(), equalTo("C"));
     }
 
+    /*
+     * Taken from https://macarthurlab.org/2014/04/28/converting-genetic-variants-to-their-minimal-representation/
+     * #CHROM POS ID  REF ALT
+     * 1   1001    .   CTCC    CCC,C,CCCC
+     */
+    @Test
+    public void testMcArthurCoLocatedOne() {
+        AllelePosition instance = AllelePosition.minimise(1001, "CTCC", "CCC");
+
+        assertThat(instance.getPos(), equalTo(1001));
+        assertThat(instance.getRef(), equalTo("CT"));
+        assertThat(instance.getAlt(), equalTo("C"));
+    }
+
+    @Test
+    public void testMcArthurCoLocatedTwo() {
+        AllelePosition instance = AllelePosition.minimise(1001, "CTCC", "C");
+
+        assertThat(instance.getPos(), equalTo(1001));
+        assertThat(instance.getRef(), equalTo("CTCC"));
+        assertThat(instance.getAlt(), equalTo("C"));
+    }
+
+    @Test
+    public void testMcArthurCoLocatedThree() {
+        AllelePosition instance = AllelePosition.minimise(1001, "CTCC", "CCCC");
+
+        assertThat(instance.getPos(), equalTo(1002));
+        assertThat(instance.getRef(), equalTo("T"));
+        assertThat(instance.getAlt(), equalTo("C"));
+    }
+
+    /**
+     * Cases taken from
+     * https://github.com/ericminikel/minimal_representation/blob/master/test_minimal_representation.py
+     */
+    @Test
+    public void testMcArthurMinimals() {
+        assertThat(AllelePosition.minimise(1001, "CTCC", "CCCC"), equalTo(AllelePosition.of(1002, "T", "C")));
+        assertThat(AllelePosition.minimise(1001, "CTCC", "CCC"), equalTo(AllelePosition.of(1001, "CT", "C")));
+        assertThat(AllelePosition.minimise(1001, "CTCC", "CTC"), equalTo(AllelePosition.of(1002, "TC", "T")));
+        assertThat(AllelePosition.minimise(1001, "CTAG", "CTG"), equalTo(AllelePosition.of(1002, "TA", "T")));
+        assertThat(AllelePosition.minimise(1001, "CTCC", "CTACC"), equalTo(AllelePosition.of(1002, "T", "TA")));
+        assertThat(AllelePosition.minimise(1001, "TCAGCAGCAG", "TCAGCAG"), equalTo(AllelePosition.of(1001, "TCAG", "T")));
+        assertThat(AllelePosition.minimise(1001, "CTT", "CTTT"), equalTo(AllelePosition.of(1001, "C", "CT")));
+        assertThat(AllelePosition.minimise(1001, "CTT", "C"), equalTo(AllelePosition.of(1001, "CTT", "C")));
+        assertThat(AllelePosition.minimise(1001, "CTT", "CT"), equalTo(AllelePosition.of(1001, "CT", "C")));
+        assertThat(AllelePosition.minimise(1001, "AAAATATATATAT", "A"), equalTo(AllelePosition.of(1001, "AAAATATATATAT", "A")));
+        assertThat(AllelePosition.minimise(1001, "AAAATATATATAT", "AATAT"), equalTo(AllelePosition.of(1001, "AAAATATAT", "A")));
+        assertThat(AllelePosition.minimise(1001, "ACACACACAC", "AACAC"), equalTo(AllelePosition.of(1001, "ACACAC", "A")));
+    }
+
+
     @Test
     public void testEvaCoLocatedOne() {
-        AllelePosition instance = AllelePosition.normalise(1000, "TGACGTAACGATT", "T");
+        AllelePosition instance = AllelePosition.minimise(1000, "TGACGTAACGATT", "T");
 
         assertThat(instance.getPos(), equalTo(1000));
         assertThat(instance.getRef(), equalTo("TGACGTAACGATT"));
@@ -58,7 +111,7 @@ public class AllelePositionTest {
 
     @Test
     public void testEvaCoLocatedTwo() {
-        AllelePosition instance = AllelePosition.normalise(1000, "TGACGTAACGATT", "TGACGTAACGGTT");
+        AllelePosition instance = AllelePosition.minimise(1000, "TGACGTAACGATT", "TGACGTAACGGTT");
 
         assertThat(instance.getPos(), equalTo(1010));
         assertThat(instance.getRef(), equalTo("A"));
@@ -67,7 +120,7 @@ public class AllelePositionTest {
 
     @Test
     public void testEvaCoLocatedThree() {
-        AllelePosition instance = AllelePosition.normalise(1000, "TGACGTAACGATT", "TGACGTAATAC");
+        AllelePosition instance = AllelePosition.minimise(1000, "TGACGTAACGATT", "TGACGTAATAC");
 
         assertThat(instance.getPos(), equalTo(1008));
         assertThat(instance.getRef(), equalTo("CGATT"));
@@ -80,7 +133,7 @@ public class AllelePositionTest {
         String ref = "GGCA";
         String alt = "GG";
 
-        AllelePosition instance = AllelePosition.normalise(pos, ref, alt);
+        AllelePosition instance = AllelePosition.minimise(pos, ref, alt);
         System.out.println(instance);
         assertThat(instance.getPos(), equalTo(3));
         assertThat(instance.getRef(), equalTo("GCA"));
@@ -93,7 +146,7 @@ public class AllelePositionTest {
 
     @Test
     public void testSnv() {
-        AllelePosition instance = AllelePosition.normalise(1, "A", "T");
+        AllelePosition instance = AllelePosition.minimise(1, "A", "T");
 
         assertThat(instance.getPos(), equalTo(1));
         assertThat(instance.getRef(), equalTo("A"));
@@ -102,7 +155,7 @@ public class AllelePositionTest {
 
     @Test
     public void testTrimLeftRef() {
-        AllelePosition instance = AllelePosition.normalise(1, "AT", "AA");
+        AllelePosition instance = AllelePosition.minimise(1, "AT", "AA");
 
         assertThat(instance.getPos(), equalTo(2));
         assertThat(instance.getRef(), equalTo("T"));
@@ -111,7 +164,7 @@ public class AllelePositionTest {
 
     @Test
     public void testTrimLeftAlt() {
-        AllelePosition instance = AllelePosition.normalise(1, "AA", "AT");
+        AllelePosition instance = AllelePosition.minimise(1, "AA", "AT");
 
         assertThat(instance.getPos(), equalTo(2));
         assertThat(instance.getRef(), equalTo("A"));
@@ -120,7 +173,7 @@ public class AllelePositionTest {
 
     @Test
     public void testTrimRightRef() {
-        AllelePosition instance = AllelePosition.normalise(1, "TA", "AA");
+        AllelePosition instance = AllelePosition.minimise(1, "TA", "AA");
 
         assertThat(instance.getPos(), equalTo(1));
         assertThat(instance.getRef(), equalTo("T"));
@@ -129,7 +182,7 @@ public class AllelePositionTest {
 
     @Test
     public void testTrimRightAlt() {
-        AllelePosition instance = AllelePosition.normalise(1, "AA", "TA");
+        AllelePosition instance = AllelePosition.minimise(1, "AA", "TA");
 
         assertThat(instance.getPos(), equalTo(1));
         assertThat(instance.getRef(), equalTo("A"));
@@ -138,7 +191,7 @@ public class AllelePositionTest {
 
     @Test
     public void testMnpTrimLeft() {
-        AllelePosition instance = AllelePosition.normalise(4, "GCAT", "GTGC");
+        AllelePosition instance = AllelePosition.minimise(4, "GCAT", "GTGC");
         System.out.println(instance);
         assertThat(instance.getPos(), equalTo(5));
         assertThat(instance.getRef(), equalTo("CAT"));
@@ -147,7 +200,7 @@ public class AllelePositionTest {
 
     @Test
     public void testMnpTrimRight() {
-        AllelePosition instance = AllelePosition.normalise(5, "CATG", "TGCG");
+        AllelePosition instance = AllelePosition.minimise(5, "CATG", "TGCG");
         System.out.println(instance);
         assertThat(instance.getPos(), equalTo(5));
         assertThat(instance.getRef(), equalTo("CAT"));
@@ -156,7 +209,7 @@ public class AllelePositionTest {
 
     @Test
     public void testMnpTrimLeftAndRight() {
-        AllelePosition instance = AllelePosition.normalise(4, "GCATG", "GTGCG");
+        AllelePosition instance = AllelePosition.minimise(4, "GCATG", "GTGCG");
         System.out.println(instance);
         assertThat(instance.getPos(), equalTo(5));
         assertThat(instance.getRef(), equalTo("CAT"));
@@ -165,7 +218,7 @@ public class AllelePositionTest {
 
     @Test
     public void testInsertionLeftBaseDifferent() {
-        AllelePosition instance = AllelePosition.normalise(1, "T", "ATG");
+        AllelePosition instance = AllelePosition.minimise(1, "T", "ATG");
 
         assertThat(instance.getPos(), equalTo(1));
         assertThat(instance.getRef(), equalTo("T"));
@@ -174,7 +227,7 @@ public class AllelePositionTest {
 
     @Test
     public void testInsertionLeftBaseEqual() {
-        AllelePosition instance = AllelePosition.normalise(1, "T", "TATG");
+        AllelePosition instance = AllelePosition.minimise(1, "T", "TATG");
 
         assertThat(instance.getPos(), equalTo(1));
         assertThat(instance.getRef(), equalTo("T"));
@@ -183,7 +236,7 @@ public class AllelePositionTest {
 
     @Test
     public void testInsertionRightBaseEqual() {
-        AllelePosition instance = AllelePosition.normalise(1, "G", "TATG");
+        AllelePosition instance = AllelePosition.minimise(1, "G", "TATG");
 
         assertThat(instance.getPos(), equalTo(1));
         assertThat(instance.getRef(), equalTo("G"));
@@ -192,7 +245,7 @@ public class AllelePositionTest {
 
     @Test
     public void testInsertionRightBaseEqualDuplicated() {
-        AllelePosition instance = AllelePosition.normalise(1, "GG", "TATGG");
+        AllelePosition instance = AllelePosition.minimise(1, "GG", "TATGG");
 
         assertThat(instance.getPos(), equalTo(1));
         assertThat(instance.getRef(), equalTo("G"));
@@ -208,7 +261,7 @@ public class AllelePositionTest {
 
     @Test
     public void testTrimRightDeletion() {
-        AllelePosition instance = AllelePosition.normalise(3, "GCACA", "GCA");
+        AllelePosition instance = AllelePosition.minimise(3, "GCACA", "GCA");
 
         assertThat(instance.getPos(), equalTo(3));
         assertThat(instance.getRef(), equalTo("GCA"));
@@ -217,7 +270,7 @@ public class AllelePositionTest {
 
     @Test
     public void testTrimLeftDeletion() {
-        AllelePosition instance = AllelePosition.normalise(2, "GGCA", "GG");
+        AllelePosition instance = AllelePosition.minimise(2, "GGCA", "GG");
         System.out.println(instance);
         assertThat(instance.getPos(), equalTo(3));
         assertThat(instance.getRef(), equalTo("GCA"));
@@ -228,7 +281,7 @@ public class AllelePositionTest {
     public void testParsimoniousInsertion() {
         //http://genome.sph.umich.edu/wiki/Variant_Normalization
         //this should really be left aligned, but we can't do that as we have nothing to align against
-        AllelePosition instance = AllelePosition.normalise(1, "C", "CAC");
+        AllelePosition instance = AllelePosition.minimise(1, "C", "CAC");
 
         assertThat(instance.getPos(), equalTo(1));
         assertThat(instance.getRef(), equalTo("C"));
@@ -239,7 +292,7 @@ public class AllelePositionTest {
     public void testParsimoniousDeletion() {
         //http://genome.sph.umich.edu/wiki/Variant_Normalization
         //this should really be left aligned, but we can't do that as we have nothing to align against
-        AllelePosition instance = AllelePosition.normalise(1, "CAC", "C");
+        AllelePosition instance = AllelePosition.minimise(1, "CAC", "C");
 
         assertThat(instance.getPos(), equalTo(1));
         assertThat(instance.getRef(), equalTo("CAC"));
@@ -248,7 +301,7 @@ public class AllelePositionTest {
 
     @Test
     public void testMnpCouldBeSplit() {
-        AllelePosition instance = AllelePosition.normalise(1, "TCT", "CCC");
+        AllelePosition instance = AllelePosition.minimise(1, "TCT", "CCC");
         //note - this can be expressed as two alleles:
         //1 T C
         //3 T C
@@ -259,7 +312,7 @@ public class AllelePositionTest {
 
     @Test
     public void testLongerSnvNeedsRightAndLeftTrim() {
-        AllelePosition instance = AllelePosition.normalise(1, "TTTTATATGCATTCTTATCTTTTTATATGCATTCTTA", "TTTTATATGCATTCTTACCCTTTTATATGCATTCTTA");
+        AllelePosition instance = AllelePosition.minimise(1, "TTTTATATGCATTCTTATCTTTTTATATGCATTCTTA", "TTTTATATGCATTCTTACCCTTTTATATGCATTCTTA");
         //note - this can be expressed as two alleles:
         //1 T C
         //3 T C
